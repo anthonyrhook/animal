@@ -35,104 +35,79 @@
  *
  * Updates:
  * - 2 May 2009 - fixed noteOn() and noteOff() 
+ * - 19 July 2011 - Anthony Hook - rewrote most of the main loop, arrays for notes, sensors
  *
  */
-
-// what midi channel we're sending on
-// ranges from 0-15
-#define drumchan           1
+ 
+//TODO have separate notesPiezo[] array for hho, crash properly
+//TODO account for these notes in loop separately
+//TODO Check for optimizations that can be done with piezo sensors
+#define DRUMCHAN 1
 
 // general midi drum notes
-#define note_bassdrum     35
-#define note_snaredrum    38
-#define note_hihatclosed  42
-#define note_hihatopen    44
-#define note_crash        49
+// bass, snare, hhc, hho, crash
+#define NUM_NOTES 5
+int notes[] = {35,48,42,44,49};
 
-// define the pins we use
-#define switchAPin 7
-#define switchBPin 6
-#define switchCPin 5
-#define piezoAPin  0
-#define piezoBPin  1
-#define ledPin     13  // for midi out status
 
-// analog threshold for piezo sensing
-#define PIEZOTHRESHOLD 100
-
-int switchAState = LOW;
-int switchBState = LOW;
-int switchCState = LOW;
+#define NUM_SWITCH 3
+int switchPins[] = {7,6,5};
+int switchStates[] = {LOW,LOW,LOW};
 int currentSwitchState = LOW;
 
+#define NUM_PIEZO 2
+int piezoPins[] = {0,1};
+int notesPiezo[] = {44,49} //TODO still duplicated, figure this out yet
+
+#define LEDPIN 13  //for midi out status
+
+//analog threshold for piezo sensing
+#define PIEZOTHRESHOLD 100
+
 int val,t;
+//Apparently notes are as follows:
+//Switchpins 1,2,3: bass, snare, hhc
 
 void setup() {
-  pinMode(switchAPin, INPUT);
-  pinMode(switchBPin, INPUT);
-  pinMode(switchCPin, INPUT);
-  digitalWrite(switchAPin, HIGH);  // turn on internal pullup
-  digitalWrite(switchBPin, HIGH);  // turn on internal pullup
-  digitalWrite(switchCPin, HIGH);  // turn on internal pullup
+  for (int i=0; i < NUM_SWITCH; i++) {
+    pinMode(switchPins[i], INPUT);
+    digitalWrite(switchPins[i], HIGH);
+  }
 
-  pinMode(ledPin, OUTPUT);
+  pinMode(LEDPIN, OUTPUT);
   Serial.begin(31250);   // set MIDI baud rate
 }
 
 void loop() {
-  // deal with switchA
-  currentSwitchState = digitalRead(switchAPin);
-  if( currentSwitchState == LOW && switchAState == HIGH ) // push
-    noteOn(drumchan,  note_bassdrum, 100);
-  if( currentSwitchState == HIGH && switchAState == LOW ) // release
-    noteOff(drumchan, note_bassdrum, 0);
-  switchAState = currentSwitchState;
+  for (int i=0; i < NUM_SWITCH; i++) {
+    currentSwitchState = digitalRead(switchPins[i]);
+    if (currentSwitchState == LOW && switchStates[i] == HIGH ) // push
+      noteOn(DRUMCHAN,  notes[i], 100);
 
-  // deal with switchB
-  currentSwitchState = digitalRead(switchBPin);
-  if( currentSwitchState == LOW && switchBState == HIGH ) // push
-    noteOn(drumchan,  note_snaredrum, 100);
-  if( currentSwitchState == HIGH && switchBState == LOW ) // release
-    noteOff(drumchan, note_snaredrum, 0);
-  switchBState = currentSwitchState;
-
-  // deal with switchC
-  currentSwitchState = digitalRead(switchCPin);
-  if( currentSwitchState == LOW && switchCState == HIGH ) // push
-    noteOn(drumchan,  note_hihatclosed, 100);
-  if( currentSwitchState == HIGH && switchCState == LOW ) // release
-    noteOff(drumchan, note_hihatclosed, 0);
-  switchCState = currentSwitchState;
-
-  // deal with first piezo, this is kind of a hack
-  val = analogRead(piezoAPin);
-  if( val >= PIEZOTHRESHOLD ) {
-    t=0;
-    while(analogRead(piezoAPin) >= PIEZOTHRESHOLD/2) {
-      t++;
-    }
-    noteOn(drumchan,note_hihatopen, t*2);
-    delay(t);
-    noteOff(drumchan,note_hihatopen,0);
+    if (currentSwitchState == HIGH && switchStates[i] == LOW ) // release
+      noteOff(DRUMCHAN, notes[i], 0);
+    switchStates[i] = currentSwitchState;
   }
 
-  // deal with second piezos, this is kind of a hack
-  val = analogRead(piezoBPin);
-  if( val >= PIEZOTHRESHOLD ) {
-    t=0;
-    while(analogRead(piezoBPin) >= PIEZOTHRESHOLD/2) {
-      t++;
-    }
-    noteOn(drumchan,note_crash, t*2);
+  //Specially deal with piezos for hho, crash
+  for (int i = 0; i < NUM_PIEZO; i++) {
+    val = analogRead(piezoPins[i];
+    if (val >= PIEZOTHRESHOLD {
+      t = 0;
+      while (analogRead(piezoPins[i]) >= PIEZOTHRESHOLD/2 {
+        t++;
+      }
+    noteOn(DRUMCHAN, notesPiezo[i], t*2);
     delay(t);
-    noteOff(drumchan,note_crash,0);
+    noteOff(DRUMCHAN, notesPiezo[i], 0);
+    }
   }
 }
 
 // Send a MIDI note-on message.  Like pressing a piano key
 // channel ranges from 0-15
 void noteOn(byte channel, byte note, byte velocity) {
-  midiMsg( (0x90 | channel), note, velocity);
+  midiMsg ((0x90 | channel), note, velocity);
 }
 
 // Send a MIDI note-off message.  Like releasing a piano key
@@ -142,9 +117,9 @@ void noteOff(byte channel, byte note, byte velocity) {
 
 // Send a general MIDI message
 void midiMsg(byte cmd, byte data1, byte data2) {
-  digitalWrite(ledPin,HIGH);  // indicate we're sending MIDI data
+  digitalWrite(LEDPIN,HIGH);  // indicate we're sending MIDI data
   Serial.print(cmd, BYTE);
   Serial.print(data1, BYTE);
   Serial.print(data2, BYTE);
-  digitalWrite(ledPin,LOW);
+  digitalWrite(LEDPIN,LOW);
 }
