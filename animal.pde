@@ -39,32 +39,30 @@
  *
  */
  
-//TODO have separate notesPiezo[] array for hho, crash properly
-//TODO account for these notes in loop separately
 //TODO Check for optimizations that can be done with piezo sensors
 #define DRUMCHAN 1
 
 // general midi drum notes
 // bass, snare, hhc, hho, crash
 #define NUM_NOTES 5
-int notes[] = {35,48,42,44,49};
+int notes[NUM_NOTES] = {35,48,42,44,49};
 
 
 #define NUM_SWITCH 3
-int switchPins[] = {7,6,5};
-int switchStates[] = {LOW,LOW,LOW};
+int switchPins[NUM_SWITCH] = {7,6,5};
+int switchStates[NUM_SWITCH] = {LOW,LOW,LOW};
 int currentSwitchState = LOW;
 
 #define NUM_PIEZO 2
-int piezoPins[] = {0,1};
-int notesPiezo[] = {44,49} //TODO still duplicated, figure this out yet
+int piezoPins[NUM_PIEZO] = {0,1};
+int notesPiezo[NUM_PIEZO] = {44,49};
 
-#define LEDPIN 13  //for midi out status
+//midi out streams
+#define LEDPIN 13
 
 //analog threshold for piezo sensing
 #define PIEZOTHRESHOLD 100
 
-int val,t;
 //Apparently notes are as follows:
 //Switchpins 1,2,3: bass, snare, hhc
 
@@ -91,9 +89,9 @@ void loop() {
 
   //Specially deal with piezos for hho, crash
   for (int i = 0; i < NUM_PIEZO; i++) {
-    val = analogRead(piezoPins[i];
+    int val = analogRead(piezoPins[i];
     if (val >= PIEZOTHRESHOLD {
-      t = 0;
+      int t = 0;
       while (analogRead(piezoPins[i]) >= PIEZOTHRESHOLD/2 {
         t++;
       }
